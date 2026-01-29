@@ -68,7 +68,7 @@
         loader.load('phong02.webp', (texture) => {
             texture.colorSpace = THREE.SRGBColorSpace;
             const geometry = new THREE.SphereGeometry(100, 60, 40); // Tăng lên 100 để bao quát hơn
-            geometry.scale(1, 0.99, 1); 
+            geometry.scale(1, 0.1, 1); 
             const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
             const skybox = new THREE.Mesh(geometry, material);
             scene.add(skybox);
