@@ -64,28 +64,15 @@
         scene.add(boundaryRing);
 
         // --- 3. PHÔNG NỀN 360 ---
-        const loader.load('phong01.webp', (texture) => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    
-    const geometry = new THREE.SphereGeometry(100, 60, 40);
-    
-    // 1. Nén đáy mạnh hơn (chỉnh từ 0.95 xuống 0.82)
-    geometry.scale(1, 0.82, 1); 
-
-    const material = new THREE.MeshBasicMaterial({
-        map: texture,
-        side: THREE.BackSide
-    });
-    
-    const skybox = new THREE.Mesh(geometry, material);
-
-    // 2. Dịch chuyển phông nền sang trái để sửa cảm giác lệch phải
-    // Số -1.5 có thể tăng lên -2.0 nếu vẫn thấy lệch
-    skybox.position.set(-1.5, 0, 0); 
-
-    scene.add(skybox);
-});
-
+        const loader = new THREE.TextureLoader();
+        loader.load('phong02.webp', (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            const geometry = new THREE.SphereGeometry(100, 60, 40); // Tăng lên 100 để bao quát hơn
+            geometry.scale(1, 0.7, 1); 
+            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
+            const skybox = new THREE.Mesh(geometry, material);
+            scene.add(skybox);
+        });
 
         // --- 4. HỆ THỐNG ĐIỀU KHIỂN ---
         let moveState = { f: 0, r: 0 };
