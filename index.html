@@ -64,12 +64,12 @@
         // Mảng vật liệu cho 6 mặt của khối hộp (Thứ tự: Phải, Trái, Trên, Dưới, Trước, Sau)
         // Lưu ý: side: THREE.BackSide để hình ảnh hiện ở mặt trong của hộp
         const roomMaterials = [
-            new THREE.MeshBasicMaterial({ map: texLoader.load('px0.png'), side: THREE.BackSide }), // Right (+x)
-            new THREE.MeshBasicMaterial({ map: texLoader.load('nx0.png'), side: THREE.BackSide }), // Left (-x)
-            new THREE.MeshBasicMaterial({ map: texLoader.load('py0.png'), side: THREE.BackSide }), // Top (+y)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('px1.png'), side: THREE.BackSide }), // Right (+x)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('nx1.png'), side: THREE.BackSide }), // Left (-x)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('py1.png'), side: THREE.BackSide }), // Top (+y)
             new THREE.MeshBasicMaterial({ color: 0x010103, side: THREE.BackSide }),              // Bottom (-y) -> GIỮ MÀU ĐEN (SÀN)
-            new THREE.MeshBasicMaterial({ map: texLoader.load('pz0.png'), side: THREE.BackSide }), // Front (+z)
-            new THREE.MeshBasicMaterial({ map: texLoader.load('nz0.png'), side: THREE.BackSide })  // Back (-z)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('pz1.png'), side: THREE.BackSide }), // Front (+z)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('nz1.png'), side: THREE.BackSide })  // Back (-z)
         ];
 
         // Tạo khối hộp phòng
