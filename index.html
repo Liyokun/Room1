@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>360 Room - Boundary Debug</title>
+    <title>Quantum FPS Room v4.0 - Skybox Box</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #000; touch-action: none; }
         #joystick-zone {
@@ -11,10 +11,16 @@
             width: 120px; height: 120px; z-index: 100;
             opacity: 0.8;
         }
+        /* Thông báo loading để biết texture đang tải */
+        #loading {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            color: cyan; font-family: monospace; font-size: 20px; pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="joystick-zone"></div>
+    <div id="loading">LOADING TEXTURES...</div>
 
     <script type="importmap">
         {
@@ -28,108 +34,148 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // --- 1. KHỞI TẠO ---
+        // --- 1. KHỞI TẠO ENGINE ---
         const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000205);
+        // Giảm sương mù đi một chút để nhìn rõ ảnh tường hơn
+        scene.fog = new THREE.Fog(0x000205, 5, 30);
+
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 0.6, 0); 
+        camera.position.set(0, 1.6, 5); 
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
 
-        const lim = 30; // Biên độ di chuyển
-
-        // --- 2. HIỂN THỊ BIÊN & SÀN (DEBUG) ---
-
-        // A. Mặt sàn kính có lưới (Glass Grid Floor)
-        const floorGeo = new THREE.PlaneGeometry(lim * 2, lim * 2);
-        const floorMat = new THREE.MeshBasicMaterial({ 
-            color: 0x00ffff, 
-            wireframe: true, 
-            transparent: true, 
-            opacity: 0.15 
-        });
-        const visualFloor = new THREE.Mesh(floorGeo, floorMat);
-        visualFloor.rotation.x = -Math.PI / 2;
-        visualFloor.position.y = 0; // Đặt đúng mặt sàn vật lý
-        scene.add(visualFloor);
-
-        // B. Vòng tròn biên giới (Boundary Circle)
-        const ringGeo = new THREE.TorusGeometry(lim, 0.05, 16, 100);
-        const ringMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-        const boundaryRing = new THREE.Mesh(ringGeo, ringMat);
-        boundaryRing.rotation.x = Math.PI / 2;
-        boundaryRing.position.y = 0.01; 
-        scene.add(boundaryRing);
-
-        // --- 3. PHÔNG NỀN 360 ---
+        // --- 2. XÂY DỰNG CĂN PHÒNG (SKYBOX BOX) ---
+        const size = 20; 
+        const height = 10; 
+        
         const loader = new THREE.TextureLoader();
-        loader.load('phong01.webp', (texture) => {
-            texture.colorSpace = THREE.SRGBColorSpace;
-            const geometry = new THREE.SphereGeometry(100, 60, 40); // Tăng lên 100 để bao quát hơn
-            geometry.scale(1, 0.95, 1); 
-            const material = new THREE.MeshBasicMaterial({ map: texture, side: THREE.BackSide });
-            const skybox = new THREE.Mesh(geometry, material);
-            scene.add(skybox);
-        });
+        
+        // Quản lý loading
+        const manager = new THREE.LoadingManager();
+        manager.onLoad = function ( ) {
+            document.getElementById('loading').style.display = 'none';
+        };
+        const texLoader = new THREE.TextureLoader(manager);
 
-        // --- 4. HỆ THỐNG ĐIỀU KHIỂN ---
+        // Mảng vật liệu cho 6 mặt của khối hộp (Thứ tự: Phải, Trái, Trên, Dưới, Trước, Sau)
+        // Lưu ý: side: THREE.BackSide để hình ảnh hiện ở mặt trong của hộp
+        const roomMaterials = [
+            new THREE.MeshBasicMaterial({ map: texLoader.load('px0.png'), side: THREE.BackSide }), // Right (+x)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('nx0.png'), side: THREE.BackSide }), // Left (-x)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('py0.png'), side: THREE.BackSide }), // Top (+y)
+            new THREE.MeshBasicMaterial({ color: 0x010103, side: THREE.BackSide }),              // Bottom (-y) -> GIỮ MÀU ĐEN (SÀN)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('pz0.png'), side: THREE.BackSide }), // Front (+z)
+            new THREE.MeshBasicMaterial({ map: texLoader.load('nz0.png'), side: THREE.BackSide })  // Back (-z)
+        ];
+
+        // Tạo khối hộp phòng
+        const roomGeo = new THREE.BoxGeometry(size, height, size);
+        const roomMesh = new THREE.Mesh(roomGeo, roomMaterials);
+        // Đặt vị trí hộp sao cho sàn nằm ở y=0 (vì box vẽ từ tâm)
+        roomMesh.position.y = height / 2; 
+        scene.add(roomMesh);
+
+        // --- 3. SÀN NHÀ & VẬT THỂ (GIỮ NGUYÊN TƯƠNG TÁC CŨ) ---
+
+        // A. Lưới sàn (Grid Floor) - Giữ lại để tạo cảm giác mặt đất
+        const gridFloor = new THREE.GridHelper(size, 20, 0xff0055, 0xff0055);
+        gridFloor.position.set(0, 0.01, 0); // Nhích lên tí xíu để không bị chìm
+        gridFloor.material.opacity = 0.5;
+        gridFloor.material.transparent = true;
+        scene.add(gridFloor);
+
+        // B. Bụi kỹ thuật số
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 1000;
+        const posArray = new Float32Array(starsCount * 3);
+        // Giới hạn bụi chỉ bay trong phòng
+        for(let i=0; i<starsCount*3; i+=3) {
+            posArray[i] = (Math.random() - 0.5) * (size - 1);     // x
+            posArray[i+1] = Math.random() * (height - 1);         // y
+            posArray[i+2] = (Math.random() - 0.5) * (size - 1);   // z
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.05, color: 0xffffff, transparent: true, opacity: 0.6 });
+        const starField = new THREE.Points(starsGeo, starsMat);
+        scene.add(starField);
+
+        // C. Các cột trụ (Pillars)
+        function addPillar(x, z, color, h) {
+            const geo = new THREE.BoxGeometry(0.6, h, 0.6);
+            const mat = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.set(x, h/2, z);
+            scene.add(mesh);
+            
+            const ring = new THREE.Mesh(
+                new THREE.TorusGeometry(0.5, 0.03, 16, 100),
+                new THREE.MeshBasicMaterial({ color: color })
+            );
+            ring.rotation.x = Math.PI/2;
+            ring.position.set(x, 0.05, z);
+            scene.add(ring);
+        }
+        addPillar(-5, -5, 0x00f2ff, 4); 
+        addPillar(5, -5, 0xff0055, 3);  
+        addPillar(0, -8, 0xffff00, 5);  
+
+        // --- 4. HỆ THỐNG ĐIỀU KHIỂN (GIỮ NGUYÊN) ---
         let moveState = { f: 0, r: 0 };
         let look = { lat: 0, lon: -90 };
         let interact = false;
         let px, py, plon, plat;
 
-        const joy = nipplejs.create({ 
-            zone: document.getElementById('joystick-zone'), 
-            mode: 'static', 
-            position: {left: '60px', bottom: '60px'}, 
-            color: 'cyan' 
-        });
-
+        const joy = nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: {left: '60px', bottom: '60px'}, color: 'cyan' });
         joy.on('move', (e, d) => { moveState.f = d.vector.y; moveState.r = d.vector.x; });
         joy.on('end', () => { moveState = { f: 0, r: 0 }; });
 
         document.addEventListener('pointerdown', e => { 
-            if(e.clientX > 200) { interact = true; px = e.clientX; py = e.clientY; plon = look.lon; plat = look.lat; }
+            if(e.clientX > 200) { 
+                interact = true; px = e.clientX; py = e.clientY; plon = look.lon; plat = look.lat; 
+            }
         });
         document.addEventListener('pointermove', e => {
             if (interact) {
-                look.lon = (px - e.clientX) * 0.2 + plon;
-                look.lat = (e.clientY - py) * 0.2 + plat;
+                look.lon = (px - e.clientX) * 0.15 + plon;
+                look.lat = (e.clientY - py) * 0.15 + plat;
             }
         });
         document.addEventListener('pointerup', () => interact = false);
 
-        // --- 5. ANIMATE ---
+        // --- 5. VÒNG LẶP XỬ LÝ ---
         const clock = new THREE.Clock();
+
         function animate() {
             requestAnimationFrame(animate);
             const dt = clock.getDelta();
 
+            // Giới hạn góc nhìn
             look.lat = Math.max(-85, Math.min(85, look.lat));
             const phi = THREE.MathUtils.degToRad(90 - look.lat);
             const theta = THREE.MathUtils.degToRad(look.lon);
             const target = new THREE.Vector3().setFromSphericalCoords(1, phi, theta).add(camera.position);
             camera.lookAt(target);
 
+            // Di chuyển
             if (moveState.f !== 0 || moveState.r !== 0) {
-                const speed = 8 * dt; // Tăng tốc độ một chút cho đỡ chật
+                const speed = 5 * dt;
                 const dir = new THREE.Vector3();
                 camera.getWorldDirection(dir);
                 dir.y = 0; dir.normalize();
                 const side = new THREE.Vector3().crossVectors(camera.up, dir).normalize();
+
                 camera.position.addScaledVector(dir, moveState.f * speed);
                 camera.position.addScaledVector(side, -moveState.r * speed);
             }
 
-            // Xử lý chặn biên theo hình tròn (thay vì hình vuông cũ)
-            const dist = Math.sqrt(camera.position.x**2 + camera.position.z**2);
-            if (dist > lim) {
-                const angle = Math.atan2(camera.position.z, camera.position.x);
-                camera.position.x = Math.cos(angle) * lim;
-                camera.position.z = Math.sin(angle) * lim;
-            }
+            // Va chạm tường (Collision)
+            const lim = size/2 - 0.5; // Giảm biên một chút để không nhìn xuyên qua ảnh
+            camera.position.x = Math.max(-lim, Math.min(lim, camera.position.x));
+            camera.position.z = Math.max(-lim, Math.min(lim, camera.position.z));
 
             renderer.render(scene, camera);
         }
